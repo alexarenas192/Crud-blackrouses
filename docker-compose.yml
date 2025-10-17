@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # SERVICIO 1: La aplicación PHP (Black Roses/ACOCTEL)
+  app:
+    build: .
+    ports:
+      - "8080:80" 
+    volumes:
+      - .:/var/www/html 
+    environment:
+      # Variables de entorno para la conexión en crud.php
+      MYSQL_DATABASE: blackroses_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_HOST: db
+    # CONFIGURACIÓN CLAVE: Espera a que la base de datos esté 'sana'
+    depends_on:
+      db:
+        condition: service_healthy 
+
+  # SERVICIO 2: La Base de Datos (MySQL)
+  db:
+    image: mysql:8.0
+    restart: always # Asegura que intente reiniciar si hay un fallo
+    environment:
+      # Credenciales de configuración de la DB
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: blackroses_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./init_db:/docker-entrypoint-initdb.d 
+    # HEALTHCHECK CLAVE: Define cuándo la DB está lista para aceptar conexiones
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dbdata:
